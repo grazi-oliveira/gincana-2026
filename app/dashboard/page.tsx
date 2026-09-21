@@ -195,7 +195,6 @@ export default async function DashboardPage() {
                   <p className="text-xs text-white/60">Sua posição aparecerá aqui</p>
                   <p className="mt-2 text-3xl font-extrabold">—</p>
                   <p className="mt-1 text-xs text-white/70">#{individualRank || "—"} individual · {personalScore} pontos</p>
-                </div>
               </a>
               </div>
 
