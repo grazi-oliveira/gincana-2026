@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 type Board = { id: string; scope: "individual" | "team"; name: string; total_squares: number; final_reward: Record<string, unknown> };
 type Square = { id: string; position: number; type: "normal" | "gold" | "silver" | "bronze" | "final"; title: string | null; description: string | null; reward_config: Record<string, any>; choice_mode: "participant" | "leader" | "team" | null };
 type Progress = { position: number };
-type Event = { id: string; square_id: string; status: "pending" | "resolved" | "cancelled"; choice_mode: "participant" | "leader" | "team" | null; reward_snapshot: Record<string, any>; beneficiary_user_id: string | null; selected_option_index: number | null };
+type GameEvent = { id: string; square_id: string; user_id: string | null; team_id: string | null; status: "pending" | "resolved" | "cancelled"; choice_mode: "participant" | "leader" | "team" | null; reward_snapshot: Record<string, any>; beneficiary_user_id: string | null; selected_option_index: number | null };
 type Member = { id: string; display_name: string; nickname: string | null; role: string };
 
 const palette = {
@@ -34,7 +34,7 @@ export default function GameBoard({ board, initialProgress, squares, initialEven
   board: Board;
   initialProgress: Progress | null;
   squares: Square[];
-  initialEvents: Event[];
+  initialEvents: GameEvent[];
   initialWallet: number;
   userId: string;
   teamId: string | null;
@@ -89,13 +89,13 @@ export default function GameBoard({ board, initialProgress, squares, initialEven
       if (next >= 0) setTargetPosition(next);
     });
     channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "game_events" }, payload => {
-      const row = payload.new as Event;
+      const row = payload.new as GameEvent;
       if ((board.scope === "individual" && row.user_id === userId) || (board.scope === "team" && row.team_id === teamId)) {
         setEvents(current => current.some(event => event.id === row.id) ? current : [...current, row]);
       }
     });
     channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_events" }, payload => {
-      const row = payload.new as Event;
+      const row = payload.new as GameEvent;
       setEvents(current => current.map(event => event.id === row.id ? row : event));
     });
     channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_wallets", filter: board.scope === "individual" ? `user_id=eq.${userId}` : teamId ? `team_id=eq.${teamId}` : undefined }, payload => {
@@ -105,7 +105,7 @@ export default function GameBoard({ board, initialProgress, squares, initialEven
     return () => { supabase.removeChannel(channel); };
   }, [board.id, board.scope, teamId, userId, supabase]);
 
-  async function resolveEvent(event: Event, optionIndex: number | null = null) {
+  async function resolveEvent(event: GameEvent, optionIndex: number | null = null) {
     setBusyEvent(event.id);
     setNotice("");
     const beneficiary = event.choice_mode === "leader" ? beneficiaries[event.id] || null : null;
