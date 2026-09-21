@@ -1,17 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        window.location.replace("/dashboard");
+      }
+    });
+  }, []);
 
   async function signInWithGoogle() {
     if (loading) return;
     setLoading(true);
 
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -25,15 +35,7 @@ export default function Home() {
     if (error) {
       setLoading(false);
       alert(error.message);
-      return;
     }
-
-    if (data?.url) {
-      window.location.assign(data.url);
-      return;
-    }
-
-    setLoading(false);
   }
 
   return (
