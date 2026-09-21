@@ -7,16 +7,33 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   async function signInWithGoogle() {
+    if (loading) return;
     setLoading(true);
+
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: "offline",
+          prompt: "select_account",
+        },
+      },
     });
+
     if (error) {
       setLoading(false);
       alert(error.message);
+      return;
     }
+
+    if (data?.url) {
+      window.location.assign(data.url);
+      return;
+    }
+
+    setLoading(false);
   }
 
   return (
