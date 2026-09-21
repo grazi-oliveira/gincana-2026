@@ -33,11 +33,11 @@ export default async function DashboardPage() {
   if (profile?.team_id) {
     const { data: team } = await supabase
       .from("teams")
-      .select("name, main_color")
+       .select("name, color")
       .eq("id", profile.team_id)
       .maybeSingle();
     teamName = team?.name ?? teamName;
-    teamColor = team?.main_color ?? teamColor;
+    teamColor = team?.color ?? teamColor;
   }
 
   const name = profile?.nickname || profile?.display_name || user.email?.split("@")[0] || "Participante";
@@ -145,7 +145,7 @@ export default async function DashboardPage() {
                     <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#419D78]">Acompanhamento</p>
                     <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Meu progresso</h2>
                   </div>
-                  <span className="text-sm font-extrabold text-[#0C4767]">0 / 0</span>
+                  <span className="text-sm font-extrabold text-[#0C4767]">{completedTasks} / {taskList.length}</span>
                 </div>
                 <div className="mt-6 space-y-5">
                   {[
@@ -167,10 +167,11 @@ export default async function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#E63946]">Próximas ações</p>
+                    <div className="flex items-center justify-between gap-3">
                     <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Tarefas</h2>
-                  <a href="/tasks" className="rounded-xl bg-[#0C4767] px-3 py-2 text-[10px] font-extrabold text-white">Ver tarefas</a>
+                    <a href="/tasks" className="rounded-xl bg-[#0C4767] px-3 py-2 text-[10px] font-extrabold text-white">Ver tarefas</a>
                   </div>
-                  <span className="rounded-full bg-[#E63946]/10 px-3 py-1 text-[10px] font-bold text-[#E63946]">0 pendentes</span>
+                  <span className="rounded-full bg-[#E63946]/10 px-3 py-1 text-[10px] font-bold text-[#E63946]">{taskList.filter(task => !submissionMap.get(task.id)).length} pendentes</span>
                 </div>
                 <div className="mt-6 rounded-2xl border border-dashed border-[#0C4767]/15 p-5">
                   <p className="text-sm font-bold text-[#0C4767]">{taskList.length ? `${taskList.length} tarefa(s) ativa(s)` : "Nenhuma tarefa disponível"}</p>
