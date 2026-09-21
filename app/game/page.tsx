@@ -31,15 +31,6 @@ export default async function GamePage() {
     current: player.id === user.id,
   })).filter((player: any) => player.position > 0 || player.id === user.id);
 
-  const myTeam = (teamRows ?? []).find((team: any) => team.id === profile.team_id);
-  const teamPlayers = profile.team_id ? [{
-    id: profile.team_id,
-    name: myTeam?.name || "Minha equipe",
-    position: Number(teamProgress?.position ?? 0),
-    color: myTeam?.color || "#419D78",
-    current: true,
-  }] : [];
-
   const [{ data: individualSquares }, { data: teamSquares }, { data: individualProgress }, { data: teamProgress }, { data: individualEvents }, { data: teamEvents }, { data: individualWallet }, { data: teamWallet }] = await Promise.all([
     supabase.from("game_squares").select("*").eq("board_id", individualBoard.id).eq("active",true).order("position"),
     supabase.from("game_squares").select("*").eq("board_id",teamBoard.id).eq("active",true).order("position"),
@@ -50,6 +41,15 @@ export default async function GamePage() {
     supabase.from("game_wallets").select("dracmas").eq("user_id",user.id).maybeSingle(),
     profile.team_id ? supabase.from("game_wallets").select("dracmas").eq("team_id",profile.team_id).maybeSingle() : Promise.resolve({data:null}),
   ]);
+
+  const myTeam = (teamRows ?? []).find((team: any) => team.id === profile.team_id);
+  const teamPlayers = profile.team_id ? [{
+    id: profile.team_id,
+    name: myTeam?.name || "Minha equipe",
+    position: Number(teamProgress?.position ?? 0),
+    color: myTeam?.color || "#419D78",
+    current: true,
+  }] : [];
 
   return (
     <main className="gincana-grid min-h-screen bg-[#f7f8f5]">
