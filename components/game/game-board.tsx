@@ -9,7 +9,8 @@ type Progress = { position: number };
 type GameEvent = { id: string; square_id: string; user_id: string | null; team_id: string | null; status: "pending" | "resolved" | "cancelled"; choice_mode: "participant" | "leader" | "team" | null; reward_snapshot: Record<string, any>; beneficiary_user_id: string | null; selected_option_index: number | null };
 type Member = { id: string; display_name: string; nickname: string | null; role: string };
 
-const palette = {
+const palette: Record<Square["type"], { bg: string; text: string; label: string }> = {
+  normal: { bg: "#ffffff", text: "#0C4767", label: "NORMAL" },
   gold: { bg: "#F7B538", text: "#6d4700", label: "DOURADA" },
   silver: { bg: "#AAB3B8", text: "#24313a", label: "PRATA" },
   bronze: { bg: "#B7794B", text: "#4b2b16", label: "BRONZE" },
