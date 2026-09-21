@@ -48,13 +48,18 @@ export default async function DashboardPage() {
   startOfWeek.setHours(0, 0, 0, 0);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [{ data: activeTasks }, { data: submissions }, { data: scoreEntries }] = await Promise.all([
+  const [{ data: activeTasks }, { data: submissions }, { data: scoreEntries }, { data: teamRankings }] = await Promise.all([
     supabase.from("tasks").select("id, due_at, frequency").eq("assigned_to", user.id).eq("status", "active").order("due_at", { ascending: true }),
     supabase.from("task_submissions").select("task_id, status, submitted_at").eq("user_id", user.id),
     supabase.from("score_entries").select("points, entry_type, created_at").eq("user_id", user.id),
+    supabase.rpc("get_team_rankings"),
   ]);
 
   const personalScore = (scoreEntries ?? []).reduce((sum, entry) => sum + Number(entry.points || 0), 0);
+  const currentTeamRanking = (teamRankings ?? []).find((team: any) => team.team_id === profile?.team_id);
+  const teamScore = currentTeamRanking?.score ?? 0;
+  const topTeamScore = Math.max(0, ...(teamRankings ?? []).map((team: any) => Number(team.score || 0)));
+  const teamRank = (teamRankings ?? []).findIndex((team: any) => team.team_id === profile?.team_id) + 1;
   const taskList = activeTasks ?? [];
   const submissionMap = new Map((submissions ?? []).map(item => [item.task_id, item]));
   const completedTasks = taskList.filter(task => submissionMap.get(task.id)?.status === "validated").length;
@@ -184,10 +189,10 @@ export default async function DashboardPage() {
               <div className="gincana-card p-6">
                 <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#F7B538]">Ranking</p>
                 <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Classificação</h2>
-                <div className="mt-5 rounded-2xl bg-[#0C4767] p-5 text-white">
+                <a href="/ranking" className="mt-5 block rounded-2xl bg-[#0C4767] p-5 text-white transition hover:-translate-y-0.5">
                   <p className="text-xs text-white/60">Sua posição aparecerá aqui</p>
                   <p className="mt-2 text-3xl font-extrabold">—</p>
-                  <p className="mt-1 text-xs text-white/70">Sua pontuação pessoal</p>
+                  <p className="mt-1 text-xs text-white/70">{teamRank || "—"} individual · {personalScore} pontos</p>
                 </div>
               </div>
 
@@ -198,7 +203,8 @@ export default async function DashboardPage() {
                   <span className="text-3xl">◆</span>
                   <div>
                     <p className="text-sm font-bold text-[#0C4767]">Progresso da equipe</p>
-                    <div className="mt-3 w-full min-w-40"><Progress value={0} color={teamColor} /></div>
+                    <p className="mt-1 text-[10px] text-[#63727b]">{teamRank || "—"} · {teamScore} pontos</p>
+                    <div className="mt-3 w-full min-w-40"><Progress value={topTeamScore ? Math.round((teamScore / topTeamScore) * 100) : 0} color={teamColor} /></div>
                   </div>
                 </div>
               </div>
