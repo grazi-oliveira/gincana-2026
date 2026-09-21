@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import GameSummaryCard from "@/components/game/game-summary-card";
 
 const navItems = [
   ["⌂", "Início"],
@@ -70,6 +71,14 @@ export default async function DashboardPage() {
   const weekTasks = taskList.filter(task => new Date(task.due_at) >= startOfWeek).length;
   const monthTasks = taskList.filter(task => new Date(task.due_at) >= startOfMonth).length;
   const firstName = name.split(" ")[0];
+
+  const [{ data: individualBoard }, { data: teamBoard }, { data: individualProgress }, { data: teamProgress }, { data: wallet }] = await Promise.all([
+    supabase.from("game_boards").select("id,scope,name,total_squares").eq("scope","individual").single(),
+    supabase.from("game_boards").select("id,scope,name,total_squares").eq("scope","team").single(),
+    supabase.from("game_progress").select("position").eq("board_id", (await supabase.from("game_boards").select("id").eq("scope","individual").single()).data?.id ?? "").eq("user_id",user.id).maybeSingle(),
+    profile?.team_id ? supabase.from("game_progress").select("position").eq("board_id", (await supabase.from("game_boards").select("id").eq("scope","team").single()).data?.id ?? "").eq("team_id",profile.team_id).maybeSingle() : Promise.resolve({data:null}),
+    supabase.from("game_wallets").select("dracmas").eq("user_id",user.id).maybeSingle(),
+  ]);
 
   return (
     <main className="gincana-grid min-h-screen bg-[#f7f8f5]">
@@ -186,6 +195,16 @@ export default async function DashboardPage() {
                 </div>
               </section>
             </div>
+
+            <section className="mt-6">
+              <GameSummaryCard
+                individualPosition={Number(individualProgress?.position ?? 0)}
+                individualTotal={Number(individualBoard?.total_squares ?? 100)}
+                teamPosition={Number(teamProgress?.position ?? 0)}
+                teamTotal={Number(teamBoard?.total_squares ?? 50)}
+                dracmas={Number(wallet?.dracmas ?? 0)}
+              />
+            </section>
 
             <section className="mt-6 grid gap-6 md:grid-cols-2">
               <div className="gincana-card p-6">
