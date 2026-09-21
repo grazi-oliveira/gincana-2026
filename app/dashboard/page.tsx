@@ -48,11 +48,12 @@ export default async function DashboardPage() {
   startOfWeek.setHours(0, 0, 0, 0);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [{ data: activeTasks }, { data: submissions }, { data: scoreEntries }, { data: teamRankings }] = await Promise.all([
+  const [{ data: activeTasks }, { data: submissions }, { data: scoreEntries }, { data: teamRankings }, { data: individualRankings }] = await Promise.all([
     supabase.from("tasks").select("id, due_at, frequency").eq("assigned_to", user.id).eq("status", "active").order("due_at", { ascending: true }),
     supabase.from("task_submissions").select("task_id, status, submitted_at").eq("user_id", user.id),
     supabase.from("score_entries").select("points, entry_type, created_at").eq("user_id", user.id),
     supabase.rpc("get_team_rankings"),
+    supabase.rpc("get_individual_rankings"),
   ]);
 
   const personalScore = (scoreEntries ?? []).reduce((sum, entry) => sum + Number(entry.points || 0), 0);
@@ -60,6 +61,7 @@ export default async function DashboardPage() {
   const teamScore = currentTeamRanking?.score ?? 0;
   const topTeamScore = Math.max(0, ...(teamRankings ?? []).map((team: any) => Number(team.score || 0)));
   const teamRank = (teamRankings ?? []).findIndex((team: any) => team.team_id === profile?.team_id) + 1;
+  const individualRank = (individualRankings ?? []).findIndex((person: any) => person.user_id === user.id) + 1;
   const taskList = activeTasks ?? [];
   const submissionMap = new Map((submissions ?? []).map(item => [item.task_id, item]));
   const completedTasks = taskList.filter(task => submissionMap.get(task.id)?.status === "validated").length;
@@ -192,8 +194,9 @@ export default async function DashboardPage() {
                 <a href="/ranking" className="mt-5 block rounded-2xl bg-[#0C4767] p-5 text-white transition hover:-translate-y-0.5">
                   <p className="text-xs text-white/60">Sua posição aparecerá aqui</p>
                   <p className="mt-2 text-3xl font-extrabold">—</p>
-                  <p className="mt-1 text-xs text-white/70">{teamRank || "—"} individual · {personalScore} pontos</p>
+                  <p className="mt-1 text-xs text-white/70">#{individualRank || "—"} individual · {personalScore} pontos</p>
                 </div>
+              </a>
               </div>
 
               <div className="gincana-card p-6">
