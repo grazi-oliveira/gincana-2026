@@ -41,6 +41,27 @@ export default async function DashboardPage() {
   }
 
   const name = profile?.nickname || profile?.display_name || user.email?.split("@")[0] || "Participante";
+
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  startOfWeek.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [{ data: activeTasks }, { data: submissions }, { data: scoreEntries }] = await Promise.all([
+    supabase.from("tasks").select("id, due_at, frequency").eq("assigned_to", user.id).eq("status", "active").order("due_at", { ascending: true }),
+    supabase.from("task_submissions").select("task_id, status, submitted_at").eq("user_id", user.id),
+    supabase.from("score_entries").select("points, entry_type, created_at").eq("user_id", user.id),
+  ]);
+
+  const personalScore = (scoreEntries ?? []).reduce((sum, entry) => sum + Number(entry.points || 0), 0);
+  const taskList = activeTasks ?? [];
+  const submissionMap = new Map((submissions ?? []).map(item => [item.task_id, item]));
+  const completedTasks = taskList.filter(task => submissionMap.get(task.id)?.status === "validated").length;
+  const progress = taskList.length ? Math.round((completedTasks / taskList.length) * 100) : 0;
+  const todayTasks = taskList.filter(task => new Date(task.due_at).toDateString() === now.toDateString()).length;
+  const weekTasks = taskList.filter(task => new Date(task.due_at) >= startOfWeek).length;
+  const monthTasks = taskList.filter(task => new Date(task.due_at) >= startOfMonth).length;
   const firstName = name.split(" ")[0];
 
   return (
@@ -101,9 +122,9 @@ export default async function DashboardPage() {
 
             <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                ["Tarefas de hoje", "—", "aguardando dados", "#F7B538", "✓"],
-                ["Meu progresso", "0%", "começando agora", "#419D78", "↗"],
-                ["Pontuação pessoal", "0", "pontos", "#0C4767", "★"],
+                ["Tarefas de hoje", String(todayTasks), todayTasks === 1 ? "tarefa disponível" : "tarefas disponíveis", "#F7B538", "✓"],
+                ["Meu progresso", `${progress}%`, `${completedTasks} de ${taskList.length} validadas`, "#419D78", "↗"],
+                ["Pontuação pessoal", String(personalScore), "pontos", "#0C4767", "★"],
                 ["Minha equipe", teamName, "equipe atual", teamColor, "◆"],
               ].map(([label, value, sub, color, icon]) => (
                 <div key={label} className="gincana-card p-5">
@@ -128,13 +149,13 @@ export default async function DashboardPage() {
                 </div>
                 <div className="mt-6 space-y-5">
                   {[
-                    ["Hoje", 0, "#F7B538"],
-                    ["Esta semana", 0, "#419D78"],
-                    ["Este mês", 0, "#0C4767"],
+                    ["Hoje", taskList.filter(task => new Date(task.due_at).toDateString() === now.toDateString()).length ? Math.round((taskList.filter(task => new Date(task.due_at).toDateString() === now.toDateString() && submissionMap.get(task.id)?.status === "validated").length / taskList.filter(task => new Date(task.due_at).toDateString() === now.toDateString()).length) * 100) : 0, "#F7B538"],
+                    ["Esta semana", weekTasks ? Math.round((taskList.filter(task => new Date(task.due_at) >= startOfWeek && submissionMap.get(task.id)?.status === "validated").length / weekTasks) * 100) : 0, "#419D78"],
+                    ["Este mês", monthTasks ? Math.round((taskList.filter(task => new Date(task.due_at) >= startOfMonth && submissionMap.get(task.id)?.status === "validated").length / monthTasks) * 100) : 0, "#0C4767"],
                   ].map(([label, value, color]) => (
                     <div key={label}>
                       <div className="mb-2 flex justify-between text-xs font-semibold text-[#63727b]">
-                        <span>{label}</span><span>0%</span>
+                        <span>{label}</span><span>{String(value)}%</span>
                       </div>
                       <Progress value={Number(value)} color={String(color)} />
                     </div>
@@ -147,12 +168,13 @@ export default async function DashboardPage() {
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#E63946]">Próximas ações</p>
                     <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Tarefas</h2>
+                  <a href="/tasks" className="rounded-xl bg-[#0C4767] px-3 py-2 text-[10px] font-extrabold text-white">Ver tarefas</a>
                   </div>
                   <span className="rounded-full bg-[#E63946]/10 px-3 py-1 text-[10px] font-bold text-[#E63946]">0 pendentes</span>
                 </div>
                 <div className="mt-6 rounded-2xl border border-dashed border-[#0C4767]/15 p-5">
-                  <p className="text-sm font-bold text-[#0C4767]">Nenhuma tarefa disponível</p>
-                  <p className="mt-1 text-xs leading-5 text-[#63727b]">As tarefas atribuídas a você aparecerão aqui com prazo e status.</p>
+                  <p className="text-sm font-bold text-[#0C4767]">{taskList.length ? `${taskList.length} tarefa(s) ativa(s)` : "Nenhuma tarefa disponível"}</p>
+                  <p className="mt-1 text-xs leading-5 text-[#63727b]">{taskList.length ? "Acesse a área de tarefas para enviar suas entregas." : "As tarefas atribuídas a você aparecerão aqui com prazo e status."}</p>
                 </div>
               </section>
             </div>
@@ -164,7 +186,7 @@ export default async function DashboardPage() {
                 <div className="mt-5 rounded-2xl bg-[#0C4767] p-5 text-white">
                   <p className="text-xs text-white/60">Sua posição aparecerá aqui</p>
                   <p className="mt-2 text-3xl font-extrabold">—</p>
-                  <p className="mt-1 text-xs text-white/70">Ranking da equipe e individual</p>
+                  <p className="mt-1 text-xs text-white/70">Sua pontuação pessoal</p>
                 </div>
               </div>
 
