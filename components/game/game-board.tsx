@@ -40,6 +40,7 @@ export default function GameBoard({ board, initialProgress, squares, initialEven
   userId: string;
   teamId: string | null;
   isLeader: boolean;
+  players?: Player[];
 }) {
   const supabase = createClient();
   const [displayPosition, setDisplayPosition] = useState(initialProgress?.position ?? 0);
