@@ -9,11 +9,7 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Do not crash the entire site if Vercel has not injected Supabase
-  // environment variables into the middleware runtime yet.
-  if (!url || !key) {
-    return response;
-  }
+  if (!url || !key) return response;
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -31,12 +27,11 @@ export async function middleware(request: NextRequest) {
   });
 
   await supabase.auth.getUser();
-
   return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!auth/callback|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
