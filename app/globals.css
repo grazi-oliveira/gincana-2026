@@ -55,3 +55,8 @@ button { cursor: pointer; }
   border-radius: 24px;
   box-shadow: 0 10px 30px rgba(12,71,103,.06);
 }
+
+
+.field-label { display:block; margin-bottom:.35rem; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:#63727b; }
+.field { width:100%; border:1px solid rgba(12,71,103,.12); border-radius:14px; background:#fff; padding:.75rem .85rem; color:#0C4767; outline:none; }
+.field:focus { border-color:#0C4767; box-shadow:0 0 0 3px rgba(12,71,103,.08); }
