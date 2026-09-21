@@ -20,10 +20,8 @@ export async function GET(request: NextRequest) {
   let response = NextResponse.redirect(new URL(next, requestUrl.origin));
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://cbejsfrgzdjuteoenekn.supabase.co",
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-      "sb_publishable_k3F8lp0HDmjKdQje9e5",
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() {
