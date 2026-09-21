@@ -72,12 +72,21 @@ export default async function DashboardPage() {
   const monthTasks = taskList.filter(task => new Date(task.due_at) >= startOfMonth).length;
   const firstName = name.split(" ")[0];
 
-  const [{ data: individualBoard }, { data: teamBoard }, { data: individualProgress }, { data: teamProgress }, { data: wallet }] = await Promise.all([
-    supabase.from("game_boards").select("id,scope,name,total_squares").eq("scope","individual").single(),
-    supabase.from("game_boards").select("id,scope,name,total_squares").eq("scope","team").single(),
-    supabase.from("game_progress").select("position").eq("board_id", (await supabase.from("game_boards").select("id").eq("scope","individual").single()).data?.id ?? "").eq("user_id",user.id).maybeSingle(),
-    profile?.team_id ? supabase.from("game_progress").select("position").eq("board_id", (await supabase.from("game_boards").select("id").eq("scope","team").single()).data?.id ?? "").eq("team_id",profile.team_id).maybeSingle() : Promise.resolve({data:null}),
+  const [{ data: boards }, { data: wallet }] = await Promise.all([
+    supabase.from("game_boards").select("id,scope,name,total_squares"),
     supabase.from("game_wallets").select("dracmas").eq("user_id",user.id).maybeSingle(),
+  ]);
+
+  const individualBoard = (boards ?? []).find(board => board.scope === "individual");
+  const teamBoard = (boards ?? []).find(board => board.scope === "team");
+
+  const [{ data: individualProgress }, { data: teamProgress }] = await Promise.all([
+    individualBoard
+      ? supabase.from("game_progress").select("position").eq("board_id", individualBoard.id).eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    teamBoard && profile?.team_id
+      ? supabase.from("game_progress").select("position").eq("board_id", teamBoard.id).eq("team_id", profile.team_id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -180,16 +189,19 @@ export default async function DashboardPage() {
               </section>
 
               <section className="gincana-card p-6 sm:p-7">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#E63946]">Próximas ações</p>
-                    <div className="flex items-center justify-between gap-3">
                     <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Tarefas</h2>
-                    <a href="/tasks" className="rounded-xl bg-[#0C4767] px-3 py-2 text-[10px] font-extrabold text-white">Ver tarefas</a>
                   </div>
-                  <span className="rounded-full bg-[#E63946]/10 px-3 py-1 text-[10px] font-bold text-[#E63946]">{taskList.filter(task => !submissionMap.get(task.id)).length} pendentes</span>
+                  <span className="rounded-full bg-[#E63946]/10 px-3 py-1 text-[10px] font-bold text-[#E63946]">
+                    {taskList.filter(task => !submissionMap.get(task.id)).length} pendentes
+                  </span>
                 </div>
-                <div className="mt-6 rounded-2xl border border-dashed border-[#0C4767]/15 p-5">
+                <a href="/tasks" className="mt-4 inline-flex rounded-xl bg-[#0C4767] px-3 py-2 text-[10px] font-extrabold text-white">
+                  Ver tarefas
+                </a>
+                <div className="mt-4 rounded-2xl border border-dashed border-[#0C4767]/15 p-5">
                   <p className="text-sm font-bold text-[#0C4767]">{taskList.length ? `${taskList.length} tarefa(s) ativa(s)` : "Nenhuma tarefa disponível"}</p>
                   <p className="mt-1 text-xs leading-5 text-[#63727b]">{taskList.length ? "Acesse a área de tarefas para enviar suas entregas." : "As tarefas atribuídas a você aparecerão aqui com prazo e status."}</p>
                 </div>
