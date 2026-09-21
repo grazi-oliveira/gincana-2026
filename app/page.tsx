@@ -9,14 +9,10 @@ export default function Home() {
   async function signInWithGoogle() {
     setLoading(true);
     const supabase = createClient();
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
-
     if (error) {
       setLoading(false);
       alert(error.message);
@@ -24,32 +20,42 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-12">
-      <section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.06] p-8 shadow-2xl backdrop-blur-xl">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 text-3xl">
-            🏆
+    <main className="gincana-grid flex min-h-screen items-center justify-center overflow-hidden px-5 py-10">
+      <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[#F7B538]/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-[#419D78]/20 blur-3xl" />
+
+      <section className="relative w-full max-w-[460px]">
+        <div className="gincana-gradient-warm mb-5 flex h-28 items-end justify-between overflow-hidden rounded-[30px] p-7 text-white gincana-shadow">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[.24em]">GINCANA</p>
+            <h1 className="mt-1 text-4xl font-extrabold tracking-[-.05em]">2026</h1>
           </div>
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.25em] text-blue-300">
-            Gincana
-          </p>
-          <h1 className="text-4xl font-black tracking-tight">2026</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Entre com sua conta Google para acessar a plataforma.
-          </p>
+          <div className="text-5xl">🏆</div>
         </div>
 
-        <button
-          onClick={signInWithGoogle}
-          disabled={loading}
-          className="w-full rounded-2xl bg-white px-5 py-4 font-bold text-slate-900 transition hover:bg-slate-100 disabled:opacity-60"
-        >
-          {loading ? "Abrindo Google..." : "Continuar com Google"}
-        </button>
+        <div className="gincana-card p-7 sm:p-9">
+          <p className="text-sm font-semibold text-[#419D78]">Sua jornada começa aqui</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-[-.04em] text-[#0C4767]">
+            Entre para a Gincana
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-[#63727b]">
+            Acesse com sua conta Google. Depois, seu perfil e sua equipe serão definidos pelo administrador.
+          </p>
 
-        <p className="mt-5 text-center text-xs leading-5 text-slate-400">
-          Seu acesso será associado ao perfil e à equipe definidos pelo administrador.
-        </p>
+          <button
+            onClick={signInWithGoogle}
+            disabled={loading}
+            className="mt-7 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#0C4767] px-5 py-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#093b57] disabled:cursor-wait disabled:opacity-60"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-extrabold text-[#0C4767]">G</span>
+            {loading ? "Abrindo Google..." : "Continuar com Google"}
+          </button>
+
+          <div className="mt-6 flex items-center gap-2 text-[11px] font-medium text-[#63727b]">
+            <span className="h-2 w-2 rounded-full bg-[#419D78]" />
+            Acesso protegido por autenticação Google
+          </div>
+        </div>
       </section>
     </main>
   );
