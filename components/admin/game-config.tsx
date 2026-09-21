@@ -30,6 +30,7 @@ export default function GameConfig({ initialBoards, initialSquares }: { initialB
   const [description, setDescription] = useState("");
   const [choiceMode, setChoiceMode] = useState("participant");
   const [rewardJson, setRewardJson] = useState(JSON.stringify(defaultConfig("gold"), null, 2));
+  const [finalRewardJson, setFinalRewardJson] = useState(JSON.stringify(initialBoards[0]?.final_reward ?? {}, null, 2));
   const [message, setMessage] = useState("");
 
   const board = boards.find(item => item.id === selectedBoard);
@@ -39,7 +40,9 @@ export default function GameConfig({ initialBoards, initialSquares }: { initialB
     if (!board) return;
     const total = Number((document.getElementById(`board-total-${board.id}`) as HTMLInputElement)?.value);
     if (!total || total < 1) return;
-    const { data, error } = await supabase.from("game_boards").update({ total_squares: total, updated_at: new Date().toISOString() }).eq("id", board.id).select().single();
+    let finalReward: any = {};
+    try { finalReward = JSON.parse(finalRewardJson); } catch { setMessage("O prêmio final precisa ser um JSON válido."); return; }
+    const { data, error } = await supabase.from("game_boards").update({ total_squares: total, final_reward: finalReward, updated_at: new Date().toISOString() }).eq("id", board.id).select().single();
     if (error) setMessage(error.message);
     else { setBoards(current => current.map(item => item.id === board.id ? data : item)); setMessage("Tabuleiro atualizado."); }
   }
@@ -83,7 +86,7 @@ export default function GameConfig({ initialBoards, initialSquares }: { initialB
         <p className="mt-2 text-sm leading-6 text-[#63727b]">O ADM define o tamanho do tabuleiro e quais casas são especiais. Dracmas, movimento e pontuação são recompensas diferentes.</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {boards.map(item => (
-            <button key={item.id} onClick={() => setSelectedBoard(item.id)} className={`rounded-2xl border p-5 text-left transition ${selectedBoard === item.id ? "border-[#0C4767] bg-[#0C4767]/5" : "border-[#0C4767]/10 bg-white"}`}>
+            <button key={item.id} onClick={() => { setSelectedBoard(item.id); setFinalRewardJson(JSON.stringify(item.final_reward ?? {}, null, 2)); }} className={`rounded-2xl border p-5 text-left transition ${selectedBoard === item.id ? "border-[#0C4767] bg-[#0C4767]/5" : "border-[#0C4767]/10 bg-white"}`}>
               <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#63727b]">{item.scope === "individual" ? "Individual" : "Equipe"}</p>
               <p className="mt-1 text-lg font-extrabold text-[#0C4767]">{item.name}</p>
               <p className="mt-1 text-xs text-[#63727b]">{item.total_squares} casas</p>
@@ -94,6 +97,7 @@ export default function GameConfig({ initialBoards, initialSquares }: { initialB
           <div className="mt-5 flex flex-wrap items-end gap-3 rounded-2xl bg-[#F7B538]/10 p-4">
             <label className="flex-1 min-w-48"><span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wider text-[#63727b]">Quantidade de casas</span><input id={`board-total-${board.id}`} defaultValue={board.total_squares} type="number" min="1" max="1000" className="w-full rounded-xl border border-[#0C4767]/10 bg-white px-3 py-3 text-sm font-bold text-[#0C4767]" /></label>
             <button onClick={saveBoard} className="rounded-xl bg-[#0C4767] px-4 py-3 text-xs font-extrabold text-white">Salvar tabuleiro</button>
+            <label className="w-full"><span className="field-label">🏁 Prêmio final</span><textarea value={finalRewardJson} onChange={e=>setFinalRewardJson(e.target.value)} rows={5} className="field font-mono text-xs" placeholder='{"rewards":[{"type":"dracmas","amount":500,"target":"self"}]}' /></label>
           </div>
         )}
       </section>
