@@ -1,10 +1,24 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+const navItems = [
+  ["⌂", "Início"],
+  ["✓", "Tarefas"],
+  ["↗", "Ranking"],
+  ["✦", "Mural"],
+];
+
+function Progress({ value, color = "#419D78" }: { value: number; color?: string }) {
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-[#0C4767]/10">
+      <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(value, 100)}%`, background: color }} />
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) redirect("/");
 
   const { data: profile } = await supabase
@@ -13,24 +27,169 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single();
 
+  let teamName = "Equipe ainda não definida";
+  let teamColor = "#0C4767";
+
+  if (profile?.team_id) {
+    const { data: team } = await supabase
+      .from("teams")
+      .select("name, main_color")
+      .eq("id", profile.team_id)
+      .maybeSingle();
+    teamName = team?.name ?? teamName;
+    teamColor = team?.main_color ?? teamColor;
+  }
+
   const name = profile?.nickname || profile?.display_name || user.email?.split("@")[0] || "Participante";
+  const firstName = name.split(" ")[0];
 
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="mx-auto max-w-5xl">
-        <header className="rounded-3xl border border-white/10 bg-white/[0.06] p-8 backdrop-blur-xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">Gincana 2026</p>
-          <h1 className="mt-2 text-3xl font-black">Olá, {name}! 👋</h1>
-          <p className="mt-2 text-slate-300">
-            Seu acesso foi autenticado. O painel completo será construído sobre o seu perfil e sua equipe.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3 text-sm">
-            <span className="rounded-full bg-white/10 px-4 py-2">Perfil: {profile?.role ?? "pending"}</span>
-            <span className="rounded-full bg-white/10 px-4 py-2">
-              {profile?.team_id ? "Equipe definida" : "Aguardando equipe"}
-            </span>
+    <main className="gincana-grid min-h-screen bg-[#f7f8f5]">
+      <div className="mx-auto flex min-h-screen max-w-[1500px]">
+        <aside className="hidden w-[250px] shrink-0 border-r border-[#0C4767]/10 bg-white/80 p-5 backdrop-blur-xl lg:flex lg:flex-col">
+          <div className="flex items-center gap-3 px-2 py-3">
+            <div className="gincana-gradient-warm flex h-11 w-11 items-center justify-center rounded-2xl text-xl">🏆</div>
+            <div>
+              <p className="text-[9px] font-extrabold uppercase tracking-[.22em] text-[#419D78]">GINCANA</p>
+              <p className="text-lg font-extrabold tracking-[-.04em] text-[#0C4767]">2026</p>
+            </div>
           </div>
-        </header>
+
+          <nav className="mt-9 space-y-1">
+            {navItems.map(([icon, label], index) => (
+              <div key={label} className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${index === 0 ? "bg-[#0C4767] text-white" : "text-[#63727b]"}`}>
+                <span className="text-base">{icon}</span>{label}
+              </div>
+            ))}
+          </nav>
+
+          <div className="mt-auto rounded-2xl bg-[#F7B538]/15 p-4">
+            <p className="text-xs font-bold text-[#0C4767]">Gincana 2026</p>
+            <p className="mt-1 text-[11px] leading-5 text-[#63727b]">Cada tarefa conta. Cada ponto aproxima a equipe.</p>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#0C4767]/10 bg-[#f7f8f5]/90 px-5 py-4 backdrop-blur-xl sm:px-8">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#419D78]">Painel</p>
+              <p className="text-sm font-extrabold text-[#0C4767] lg:hidden">GINCANA 2026</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="hidden text-right sm:block">
+                <p className="text-xs font-bold text-[#0C4767]">{name}</p>
+                <p className="text-[10px] text-[#63727b]">{teamName}</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0C4767] text-sm font-extrabold text-white">
+                {name.slice(0, 1).toUpperCase()}
+              </div>
+            </div>
+          </header>
+
+          <div className="p-5 sm:p-8">
+            <section className="gincana-gradient relative overflow-hidden rounded-[30px] p-6 text-white gincana-shadow sm:p-8">
+              <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
+              <div className="absolute -bottom-24 right-28 h-40 w-40 rounded-full bg-[#F7B538]/20 blur-2xl" />
+              <div className="relative max-w-2xl">
+                <p className="text-xs font-semibold text-white/70">BEM-VINDA À GINCANA 2026</p>
+                <h1 className="mt-2 text-3xl font-extrabold tracking-[-.045em] sm:text-4xl">Olá, {firstName}! 👋</h1>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">
+                  Acompanhe suas tarefas, seu progresso e a posição da sua equipe em um só lugar.
+                </p>
+              </div>
+            </section>
+
+            <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                ["Tarefas de hoje", "—", "aguardando dados", "#F7B538", "✓"],
+                ["Meu progresso", "0%", "começando agora", "#419D78", "↗"],
+                ["Pontuação pessoal", "0", "pontos", "#0C4767", "★"],
+                ["Minha equipe", teamName, "equipe atual", teamColor, "◆"],
+              ].map(([label, value, sub, color, icon]) => (
+                <div key={label} className="gincana-card p-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-[.12em] text-[#63727b]">{label}</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl text-sm font-extrabold text-white" style={{ background: color }}>{icon}</span>
+                  </div>
+                  <p className="mt-5 truncate text-2xl font-extrabold tracking-[-.05em] text-[#0C4767]">{value}</p>
+                  <p className="mt-1 text-[11px] text-[#63727b]">{sub}</p>
+                </div>
+              ))}
+            </section>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+              <section className="gincana-card p-6 sm:p-7">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#419D78]">Acompanhamento</p>
+                    <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Meu progresso</h2>
+                  </div>
+                  <span className="text-sm font-extrabold text-[#0C4767]">0 / 0</span>
+                </div>
+                <div className="mt-6 space-y-5">
+                  {[
+                    ["Hoje", 0, "#F7B538"],
+                    ["Esta semana", 0, "#419D78"],
+                    ["Este mês", 0, "#0C4767"],
+                  ].map(([label, value, color]) => (
+                    <div key={label}>
+                      <div className="mb-2 flex justify-between text-xs font-semibold text-[#63727b]">
+                        <span>{label}</span><span>0%</span>
+                      </div>
+                      <Progress value={Number(value)} color={String(color)} />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="gincana-card p-6 sm:p-7">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#E63946]">Próximas ações</p>
+                    <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Tarefas</h2>
+                  </div>
+                  <span className="rounded-full bg-[#E63946]/10 px-3 py-1 text-[10px] font-bold text-[#E63946]">0 pendentes</span>
+                </div>
+                <div className="mt-6 rounded-2xl border border-dashed border-[#0C4767]/15 p-5">
+                  <p className="text-sm font-bold text-[#0C4767]">Nenhuma tarefa disponível</p>
+                  <p className="mt-1 text-xs leading-5 text-[#63727b]">As tarefas atribuídas a você aparecerão aqui com prazo e status.</p>
+                </div>
+              </section>
+            </div>
+
+            <section className="mt-6 grid gap-6 md:grid-cols-2">
+              <div className="gincana-card p-6">
+                <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#F7B538]">Ranking</p>
+                <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Classificação</h2>
+                <div className="mt-5 rounded-2xl bg-[#0C4767] p-5 text-white">
+                  <p className="text-xs text-white/60">Sua posição aparecerá aqui</p>
+                  <p className="mt-2 text-3xl font-extrabold">—</p>
+                  <p className="mt-1 text-xs text-white/70">Ranking da equipe e individual</p>
+                </div>
+              </div>
+
+              <div className="gincana-card p-6">
+                <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#419D78]">Equipe</p>
+                <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">{teamName}</h2>
+                <div className="mt-5 flex items-center gap-4 rounded-2xl bg-[#419D78]/10 p-5">
+                  <span className="text-3xl">◆</span>
+                  <div>
+                    <p className="text-sm font-bold text-[#0C4767]">Progresso da equipe</p>
+                    <div className="mt-3 w-full min-w-40"><Progress value={0} color={teamColor} /></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <nav className="mt-6 grid grid-cols-4 gap-2 rounded-2xl border border-[#0C4767]/10 bg-white p-2 lg:hidden">
+              {navItems.map(([icon, label], index) => (
+                <div key={label} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[9px] font-bold ${index === 0 ? "bg-[#0C4767] text-white" : "text-[#63727b]"}`}>
+                  <span className="text-base">{icon}</span>{label}
+                </div>
+              ))}
+            </nav>
+          </div>
+        </div>
       </div>
     </main>
   );
