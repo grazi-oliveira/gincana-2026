@@ -15,6 +15,31 @@ export default async function GamePage() {
     supabase.from("game_boards").select("*").eq("scope","team").single(),
   ]);
 
+  const [{ data: playerProfiles }, { data: allIndividualProgress }, { data: teamRows }] = await Promise.all([
+    supabase.from("profiles").select("id,display_name,nickname,role,team_id").in("role", ["team","team_leader"]),
+    supabase.from("game_progress").select("user_id,position").eq("board_id", individualBoard.id),
+    supabase.from("teams").select("id,name,color"),
+  ]);
+
+  const teamColorById = new Map((teamRows ?? []).map((team: any) => [team.id, team.color]));
+  const progressByUserId = new Map((allIndividualProgress ?? []).map((row: any) => [row.user_id, Number(row.position ?? 0)]));
+  const individualPlayers = (playerProfiles ?? []).map((player: any) => ({
+    id: player.id,
+    name: player.nickname || player.display_name || "Jogador",
+    position: progressByUserId.get(player.id) ?? 0,
+    color: player.id === user.id ? "#0C4767" : (teamColorById.get(player.team_id) || "#419D78"),
+    current: player.id === user.id,
+  })).filter((player: any) => player.position > 0 || player.id === user.id);
+
+  const myTeam = (teamRows ?? []).find((team: any) => team.id === profile.team_id);
+  const teamPlayers = profile.team_id ? [{
+    id: profile.team_id,
+    name: myTeam?.name || "Minha equipe",
+    position: Number(teamProgress?.position ?? 0),
+    color: myTeam?.color || "#419D78",
+    current: true,
+  }] : [];
+
   const [{ data: individualSquares }, { data: teamSquares }, { data: individualProgress }, { data: teamProgress }, { data: individualEvents }, { data: teamEvents }, { data: individualWallet }, { data: teamWallet }] = await Promise.all([
     supabase.from("game_squares").select("*").eq("board_id", individualBoard.id).eq("active",true).order("position"),
     supabase.from("game_squares").select("*").eq("board_id",teamBoard.id).eq("active",true).order("position"),
@@ -48,6 +73,7 @@ export default async function GamePage() {
             userId={user.id}
             teamId={profile.team_id}
             isLeader={profile.role === "team_leader" || profile.role === "admin"}
+            players={individualPlayers}
           />
           <GameBoard
             board={teamBoard}
@@ -58,6 +84,7 @@ export default async function GamePage() {
             userId={user.id}
             teamId={profile.team_id}
             isLeader={profile.role === "team_leader" || profile.role === "admin"}
+            players={teamPlayers}
           />
         </div>
       </div>
