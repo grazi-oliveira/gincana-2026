@@ -17,11 +17,11 @@ export default async function GamePage() {
 
   const [{ data: individualSquares }, { data: teamSquares }, { data: individualProgress }, { data: teamProgress }, { data: individualEvents }, { data: teamEvents }, { data: individualWallet }, { data: teamWallet }] = await Promise.all([
     supabase.from("game_squares").select("*").eq("board_id", individualBoard.id).eq("active",true).order("position"),
-    supabase.from("game_squares").select("*").eq("board_id", teamBoard.id).eq("active",true).order("position"),
+    supabase.from("game_squares").select("*").eq("board_id",teamBoard.id).eq("active",true).order("position"),
     supabase.from("game_progress").select("position").eq("board_id",individualBoard.id).eq("user_id",user.id).maybeSingle(),
     profile.team_id ? supabase.from("game_progress").select("position").eq("board_id",teamBoard.id).eq("team_id",profile.team_id).maybeSingle() : Promise.resolve({data:null}),
-    supabase.from("game_events").select("id,square_id,status,choice_mode,reward_snapshot,beneficiary_user_id,selected_option_index").eq("board_id",individualBoard.id).eq("user_id",user.id).eq("status","pending").order("triggered_at"),
-    profile.team_id ? supabase.from("game_events").select("id,square_id,status,choice_mode,reward_snapshot,beneficiary_user_id,selected_option_index").eq("board_id",teamBoard.id).eq("team_id",profile.team_id).eq("status","pending").order("triggered_at") : Promise.resolve({data:[]}),
+    supabase.from("game_events").select("id,square_id,user_id,team_id,status,choice_mode,reward_snapshot,beneficiary_user_id,selected_option_index").eq("board_id",individualBoard.id).eq("user_id",user.id).eq("status","pending").order("triggered_at"),
+    profile.team_id ? supabase.from("game_events").select("id,square_id,user_id,team_id,status,choice_mode,reward_snapshot,beneficiary_user_id,selected_option_index").eq("board_id",teamBoard.id).eq("team_id",profile.team_id).eq("status","pending").order("triggered_at") : Promise.resolve({data:[]}),
     supabase.from("game_wallets").select("dracmas").eq("user_id",user.id).maybeSingle(),
     profile.team_id ? supabase.from("game_wallets").select("dracmas").eq("team_id",profile.team_id).maybeSingle() : Promise.resolve({data:null}),
   ]);
