@@ -7,7 +7,8 @@ type Board = { id: string; scope: "individual" | "team"; name: string; total_squ
 type Square = { id: string; position: number; type: "normal" | "gold" | "silver" | "bronze" | "final"; title: string | null; description: string | null; reward_config: Record<string, any>; choice_mode: "participant" | "leader" | "team" | null };
 type Progress = { position: number };
 type GameEvent = { id: string; square_id: string; user_id: string | null; team_id: string | null; status: "pending" | "resolved" | "cancelled"; choice_mode: "participant" | "leader" | "team" | null; reward_snapshot: Record<string, any>; beneficiary_user_id: string | null; selected_option_index: number | null };
-type Member = { id: string; display_name: string; nickname: string | null; role: string };\ntype Player = { id: string; name: string; position: number; color: string; current?: boolean };
+type Member = { id: string; display_name: string; nickname: string | null; role: string };
+type Player = { id: string; name: string; position: number; color: string; current?: boolean };
 
 const palette: Record<Square["type"], { bg: string; text: string; label: string }> = {
   normal: { bg: "#ffffff", text: "#0C4767", label: "NORMAL" },
