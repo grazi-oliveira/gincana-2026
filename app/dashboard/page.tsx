@@ -17,6 +17,27 @@ function Progress({ value, color = "#419D78" }: { value: number; color?: string 
   );
 }
 
+function greeting(hour: number) {
+  if (hour < 5) return "Boa noite";
+  if (hour < 12) return "Bom dia";
+  if (hour < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+function PendingScreen({ name }: { name: string }) {
+  return (
+    <main className="gincana-grid flex min-h-screen items-center justify-center px-5 py-10">
+      <section className="gincana-card w-full max-w-[440px] p-8 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F7B538]/15 text-3xl">⏳</div>
+        <h1 className="mt-5 text-2xl font-extrabold tracking-[-.04em] text-[#0C4767]">Olá, {name}!</h1>
+        <p className="mt-3 text-sm leading-6 text-[#63727b]">
+          Seu acesso foi confirmado, mas um administrador ainda precisa colocar você em uma equipe. Assim que isso acontecer, seu painel aparece aqui.
+        </p>
+      </section>
+    </main>
+  );
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,6 +48,12 @@ export default async function DashboardPage() {
     .select("display_name, nickname, role, team_id")
     .eq("id", user.id)
     .single();
+
+  const displayName = profile?.nickname || profile?.display_name || user.email?.split("@")[0] || "Participante";
+
+  if (profile?.role === "pending") {
+    return <PendingScreen name={displayName.split(" ")[0]} />;
+  }
 
   let teamName = "Equipe ainda não definida";
   let teamColor = "#0C4767";
@@ -41,7 +68,8 @@ export default async function DashboardPage() {
     teamColor = team?.color ?? teamColor;
   }
 
-  const name = profile?.nickname || profile?.display_name || user.email?.split("@")[0] || "Participante";
+  const name = displayName;
+  const isLeader = profile?.role === "team_leader";
 
   const now = new Date();
   const startOfWeek = new Date(now);
@@ -63,6 +91,26 @@ export default async function DashboardPage() {
   const topTeamScore = Math.max(0, ...(teamRankings ?? []).map((team: any) => Number(team.score || 0)));
   const teamRank = (teamRankings ?? []).findIndex((team: any) => team.team_id === profile?.team_id) + 1;
   const individualRank = (individualRankings ?? []).findIndex((person: any) => person.user_id === user.id) + 1;
+  let teamMembers: { id: string; name: string; pendingCount: number; status: "em_dia" | "pendente" }[] = [];
+  if (isLeader && profile?.team_id) {
+    const [{ data: members }, { data: teamActiveTasks }, { data: teamSubmissions }] = await Promise.all([
+      supabase.from("profiles").select("id,display_name,nickname").eq("team_id", profile.team_id).in("role", ["team", "team_leader"]),
+      supabase.from("tasks").select("id,assigned_to").eq("team_id", profile.team_id).eq("status", "active"),
+      supabase.from("task_submissions").select("task_id,user_id").in("status", ["submitted", "validated"]),
+    ]);
+    const submittedTaskIds = new Set((teamSubmissions ?? []).map(s => `${s.user_id}:${s.task_id}`));
+    teamMembers = (members ?? []).map(member => {
+      const memberTasks = (teamActiveTasks ?? []).filter(t => t.assigned_to === member.id);
+      const pendingCount = memberTasks.filter(t => !submittedTaskIds.has(`${member.id}:${t.id}`)).length;
+      return {
+        id: member.id,
+        name: member.nickname || member.display_name,
+        pendingCount,
+        status: pendingCount > 0 ? "pendente" : "em_dia",
+      };
+    });
+  }
+
   const taskList = activeTasks ?? [];
   const submissionMap = new Map((submissions ?? []).map(item => [item.task_id, item]));
   const completedTasks = taskList.filter(task => submissionMap.get(task.id)?.status === "validated").length;
@@ -137,10 +185,12 @@ export default async function DashboardPage() {
               <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
               <div className="absolute -bottom-24 right-28 h-40 w-40 rounded-full bg-[#F7B538]/20 blur-2xl" />
               <div className="relative max-w-2xl">
-                <p className="text-xs font-semibold text-white/70">BEM-VINDA À GINCANA 2026</p>
-                <h1 className="mt-2 text-3xl font-extrabold tracking-[-.045em] sm:text-4xl">Olá, {firstName}! 👋</h1>
+                <p className="text-xs font-semibold text-white/70">GINCANA 2026{isLeader ? " · LÍDER DE EQUIPE" : ""}</p>
+                <h1 className="mt-2 text-3xl font-extrabold tracking-[-.045em] sm:text-4xl">{greeting(now.getHours())}, {firstName}! 👋</h1>
                 <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">
-                  Acompanhe suas tarefas, seu progresso e a posição da sua equipe em um só lugar.
+                  {isLeader
+                    ? "Acompanhe sua equipe, suas próprias tarefas e a posição no ranking geral."
+                    : "Acompanhe suas tarefas, seu progresso e a posição da sua equipe em um só lugar."}
                 </p>
               </div>
             </section>
@@ -207,6 +257,33 @@ export default async function DashboardPage() {
                 </div>
               </section>
             </div>
+
+            {isLeader && (
+              <section className="gincana-card mt-6 p-6 sm:p-7">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#419D78]">Sua equipe</p>
+                    <h2 className="mt-1 text-xl font-extrabold tracking-[-.04em] text-[#0C4767]">Quem está em dia</h2>
+                  </div>
+                  <span className="text-sm font-extrabold text-[#0C4767]">
+                    {teamMembers.filter(m => m.status === "em_dia").length} / {teamMembers.length}
+                  </span>
+                </div>
+                <div className="mt-5 space-y-2">
+                  {teamMembers.length === 0 && <p className="text-sm text-[#63727b]">Nenhum integrante na equipe ainda.</p>}
+                  {teamMembers.map(member => (
+                    <div key={member.id} className="flex items-center justify-between rounded-2xl border border-[#0C4767]/10 p-3">
+                      <span className="text-sm font-bold text-[#0C4767]">{member.name}</span>
+                      {member.status === "em_dia" ? (
+                        <span className="rounded-full bg-[#419D78]/10 px-3 py-1 text-[10px] font-bold text-[#419D78]">Em dia</span>
+                      ) : (
+                        <span className="rounded-full bg-[#E63946]/10 px-3 py-1 text-[10px] font-bold text-[#E63946]">{member.pendingCount} pendente(s)</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="mt-6">
               <GameSummaryCard
