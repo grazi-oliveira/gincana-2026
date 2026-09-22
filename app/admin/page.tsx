@@ -45,6 +45,8 @@ export default async function AdminPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <a href="/admin/tasks" className="rounded-xl bg-[#0C4767] px-4 py-3 text-xs font-extrabold text-white">+ Tarefa</a>
+            <a href="/admin/teams" className="rounded-xl bg-[#419D78] px-4 py-3 text-xs font-extrabold text-white">◆ Equipes</a>
+            <a href="/admin/users" className="rounded-xl bg-[#E63946] px-4 py-3 text-xs font-extrabold text-white">👥 Usuários</a>
             <a href="/admin/game" className="rounded-xl bg-[#F7B538] px-4 py-3 text-xs font-extrabold text-[#0C4767]">🎲 Configurar jogo</a>
           </div>
         </div>
