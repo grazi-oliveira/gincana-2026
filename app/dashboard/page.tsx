@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import GameSummaryCard from "@/components/game/game-summary-card";
+import NicknamePrompt from "@/components/dashboard/nickname-prompt";
+import GreetingHeading from "@/components/dashboard/greeting-heading";
 
 const navItems = [
   ["⌂", "Início"],
@@ -15,13 +17,6 @@ function Progress({ value, color = "#419D78" }: { value: number; color?: string 
       <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(value, 100)}%`, background: color }} />
     </div>
   );
-}
-
-function greeting(hour: number) {
-  if (hour < 5) return "Boa noite";
-  if (hour < 12) return "Bom dia";
-  if (hour < 18) return "Boa tarde";
-  return "Boa noite";
 }
 
 function PendingScreen({ name }: { name: string }) {
@@ -50,6 +45,10 @@ export default async function DashboardPage() {
     .single();
 
   const displayName = profile?.nickname || profile?.display_name || user.email?.split("@")[0] || "Participante";
+
+  if (profile && !profile.nickname) {
+    return <NicknamePrompt suggestedName={profile.display_name ?? ""} />;
+  }
 
   if (profile?.role === "pending") {
     return <PendingScreen name={displayName.split(" ")[0]} />;
@@ -186,7 +185,7 @@ export default async function DashboardPage() {
               <div className="absolute -bottom-24 right-28 h-40 w-40 rounded-full bg-[#F7B538]/20 blur-2xl" />
               <div className="relative max-w-2xl">
                 <p className="text-xs font-semibold text-white/70">GINCANA 2026{isLeader ? " · LÍDER DE EQUIPE" : ""}</p>
-                <h1 className="mt-2 text-3xl font-extrabold tracking-[-.045em] sm:text-4xl">{greeting(now.getHours())}, {firstName}! 👋</h1>
+                <GreetingHeading firstName={firstName} />
                 <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">
                   {isLeader
                     ? "Acompanhe sua equipe, suas próprias tarefas e a posição no ranking geral."
